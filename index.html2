@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق الكاميرا المتقدم</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e24;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+        h2 { color: #4caf50; }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #2a2a35;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        video, canvas, img {
+            width: 100%;
+            max-width: 480px;
+            border-radius: 10px;
+            background: #000;
+            margin-top: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .btn-group {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-start { background-color: #4caf50; color: white; }
+        .btn-switch { background-color: #2196f3; color: white; }
+        .btn-capture { background-color: #ff9800; color: white; }
+        button:hover { opacity: 0.9; transform: scale(1.03); }
+        #snapshot-container {
+            margin-top: 25px;
+            border-top: 2px dashed #444;
+            padding-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>تطبيق الكاميرا المتطور</h2>
+    <p>يمكنك التبديل بين الكاميرات والتقاط الصور</p>
+
+    <!-- عرض البث المباشر -->
+    <video id="video-feed" autoplay playsinline></video>
+
+    <!-- أزرار التحكم -->
+    <div class="btn-group">
+        <button class="btn-start" id="btn-start">تشغيل الكاميرا</button>
+        <button class="btn-switch" id="btn-switch">تبديل الكاميرا الخلفية</button>
+        <button class="btn-capture" id="btn-capture">التقاط صورة</button>
+    </div>
+
+    <!-- مكان عرض الصورة الملتقطة -->
+    <div id="snapshot-container">
+        <h3>الصورة الملتقطة:</h3>
+        <img id="photo-output" alt="اللقطة تظهر هنا">
+    </div>
+
+    <!-- عنصر مخفي لمعالجة الصورة -->
+    <canvas id="canvas" style="display:none;"></canvas>
+</div>
+
+<script>
+    const video = document.getElementById('video-feed');
+    const btnStart = document.getElementById('btn-start');
+    const btnSwitch = document.getElementById('btn-switch');
+    const btnCapture = document.getElementById('btn-capture');
+    const canvas = document.getElementById('canvas');
+    const photoOutput = document.getElementById('photo-output');
+    const snapshotContainer = document.getElementById('snapshot-container');
+
+    let currentStream = null;
+    let useFacingMode = "user"; // "user" للأمامية و "environment" للخلفية
+
+    // دالة تشغيل البث
+    async function startCamera(facingMode) {
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+
+        try {
+            const constraints = {
+                video: { facingMode: facingMode },
+                audio: false
+            };
+            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = currentStream;
+        } catch (error) {
+            alert("خطأ في تشغيل الكاميرا، تأكد من إعطاء الصلاحية.");
+            console.error(error);
+        }
+    }
+
+    // زر التشغيل الأول
+    btnStart.addEventListener('click', () => {
+        startCamera(useFacingMode);
+    });
+
+    // زر تبديل الكاميرا (أمامية / خلفية)
+    btnSwitch.addEventListener('click', () => {
+        useFacingMode = (useFacingMode === "user") ? "environment" : "user";
+        btnSwitch.textContent = (useFacingMode === "user") ? "تبديل الكاميرا الخلفية" : "تبديل الكاميرا الأمامية";
+        if (currentStream) {
+            startCamera(useFacingMode);
+        }
+    });
+
+    // زر التقاط الصورة
+    btnCapture.addEventListener('click', () => {
+        if (!currentStream) {
+            alert("يرجى تشغيل الكاميرا أولاً!");
+            return;
+        }
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // رسم الفريم الحالي من الفيديو على الكانفاس
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // تحويل الرسمة إلى رابط صورة وعرضها
+        const dataUrl = canvas.toDataURL('image/png');
+        photoOutput.src = dataUrl;
+        snapshotContainer.style.display = 'block';
+    });
+</script>
+
+</body>
+</html>
